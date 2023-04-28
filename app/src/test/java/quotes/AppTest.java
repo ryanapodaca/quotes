@@ -4,11 +4,23 @@
 package quotes;
 
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AppTest {
-    @Test void getRandomQuote() {
+    @Test void ensureRunning() {
         App app = new App();
         assertNotNull(app);
     }
+
+    @Test public void testFetchRandomQuote() {
+        App app = new App();
+        File quoteFile = new File("../app/src/main/resources/recentquotes.json");
+        assertTrue(quoteFile.exists());
+
+    }
+
+
 }
