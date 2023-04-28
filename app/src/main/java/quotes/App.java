@@ -6,9 +6,10 @@ package quotes;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
@@ -17,27 +18,58 @@ import java.util.Random;
 public class App {
     public static void main(String[] args) throws FileNotFoundException {
         Gson gson = new Gson();
+        HttpURLConnection forismaticConnection = null;
         Random rand = new Random();
 
         File quoteFile = new File("app/src/main/resources/recentquotes.json");
-
         FileReader quoteReader = new FileReader(quoteFile);
-
-
         TypeToken<Collection<Quote>> collectionType = new TypeToken<Collection<Quote>>(){};
 
-
         Collection<Quote> collection = gson.fromJson(quoteReader, collectionType);
-
-//        ArrayList<Quote> list = Arrays.asList(collection.addAll());
 
         ArrayList<Quote> list = new ArrayList<>();
 
         for (Quote element : collection){
             list.add(element);
         }
-        int randomIndex = rand.nextInt(list.size()-1);
 
-        System.out.println("Author: " + list.get(randomIndex).author +" \nQuote: " + list.get(randomIndex).text);
+
+        try {
+            URL forismaticURL = new URL("http://api.forismatic.com/api/1.0/?lang=en&method=getQuote&format=json");
+            forismaticConnection = (HttpURLConnection)forismaticURL.openConnection();
+
+            forismaticConnection.setRequestMethod("GET");
+            int status = forismaticConnection.getResponseCode();
+
+            if (status == 200) {
+                InputStreamReader forismaticStreamReader = new InputStreamReader(forismaticConnection.getInputStream());
+
+                try(BufferedReader forismaticBufferedReader = new BufferedReader(forismaticStreamReader)) {
+                    String line = forismaticBufferedReader.readLine();
+
+                    ForismaticQuote forismaticQuote = gson.fromJson(line, ForismaticQuote.class);
+
+                    System.out.println(forismaticQuote.toString());
+
+                    Quote newQuote = new Quote(forismaticQuote.getQuoteAuthor(), forismaticQuote.getQuoteText());
+                    list.add(newQuote);
+
+                }
+            } else {
+                System.out.println("Not 200");
+
+                int randomIndex = rand.nextInt(list.size()-1);
+
+                System.out.println("Author: " + list.get(randomIndex).author +" \nQuote: " + list.get(randomIndex).text);
+            }
+        } catch (MalformedURLException mue) {
+            System.out.println("incorrect url");
+            mue.printStackTrace();
+        } catch (IOException ioe) {
+            System.out.println("problem with api");
+            ioe.printStackTrace();
+        } finally {
+            forismaticConnection.disconnect();
+        }
     }
 }
